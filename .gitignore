@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+# Python
+.idea/
+python/.idea/
+__pycache__/
+python/__pycache__/
+*.Rhistory
+python/.Rhistory
+*.DS_Store
+params/
+
