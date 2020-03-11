@@ -1,0 +1,5 @@
+tqdm
+regex
+requests
+numpy
+aiohttp

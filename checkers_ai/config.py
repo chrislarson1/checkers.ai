@@ -1,14 +1,11 @@
 import os
-import sys
-import json
 import numpy as np
-import tensorflow as tf
 
 
 #######################################################################
 ############## ENVIRONMENT VARIABLES DEFINED HERE #####################
 #######################################################################
-ROOTDIR = "/media/chris/HDD/checkers.ai"
+ROOTDIR = os.path.dirname(os.path.abspath(__file__)) + "/.."
 RAW_DFILE = os.path.join(ROOTDIR, 'data/OCA_2.0.pdn')
 DFILE = os.path.join(ROOTDIR, 'data/OCA_2.0.npz')
 JUMPS_FILE = os.path.join(ROOTDIR, 'data/jumps.csv')
@@ -56,7 +53,7 @@ BOARD_INIT = np.array([
 ]).reshape(-1).astype(np.int32)
 JUMPS = np.genfromtxt(fname=JUMPS_FILE, delimiter=',')
 MAX_MOVES = 60
-SELECT_EPS = 0.5
+SELECT_EPS = 0.1
 SELECT_N = 128
 REWARD_WIN = float(MAX_MOVES) / 2
 REWARD_LOSS = -REWARD_WIN
@@ -134,10 +131,6 @@ NEXT_NEIGHBORS = {0: [IV, 9, IV, IV],
 #######################################################################
 ########################## Model Parameters ###########################
 #######################################################################
-PARAM_INIT = tf.contrib.layers.xavier_initializer()
-
-INCEP_ACT = tf.nn.tanh
-
 HWY_LAYERS = 3
 
 KEEP_PROB = 0.67

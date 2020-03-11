@@ -1,14 +1,13 @@
-import numpy as np
 import re
 import tqdm
-from config import *
-from state import State
+from checkers_ai.config import *
+from checkers_ai.state import State
 
 
 def parse():
     """
         This program parses OCA_2.pdn, which contains ~22K checkers games, and extracts each of the
-        state-action (board-move) pairs into a numpy array and serializes them for python training.
+        state-action (board-move) pairs into a numpy array and serializes them for checkers_ai training.
 
         Example entry from OCA_2.0.pdn:
 

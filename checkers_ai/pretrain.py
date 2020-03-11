@@ -1,12 +1,13 @@
 import tqdm
-from utils import *
-from config import *
-from parser import parse
-from model import Policy
+import tensorflow as tf
+from checkers_ai.config import *
+from checkers_ai.parser import parse
+from checkers_ai.model import Policy
+
 
 def train():
     global lr, epoch, ACC, LOSS, PASS_ANNEAL_RATE, FAIL_ANNEAL_RATE
-    info("Building Graph...")
+    print("Building Graph...")
     TF_CONFIG = tf.ConfigProto(allow_soft_placement=True,
                                log_device_placement=False)
     session = tf.Session(config=TF_CONFIG)
@@ -19,10 +20,10 @@ def train():
         tf.local_variables_initializer()
     ))
     policy.init(session=session)
-    warn("UNITITIALIZED VARIABLES:")
-    warn(str(session.run(tf.report_uninitialized_variables())))
-    warn("TRAINABLE VARIABLES:")
-    [warn("Variable name: {}, Variable: {}".format(
+    print("UNITITIALIZED VARIABLES:")
+    print(str(session.run(tf.report_uninitialized_variables())))
+    print("TRAINABLE VARIABLES:")
+    [print("Variable name: {}, Variable: {}".format(
         v.name, v)) for v in tf.trainable_variables()]
 
     def run_minibatches(X, y, desc:str, train:bool, bsize:int, shuffle=True):
@@ -79,16 +80,14 @@ def train():
             FAIL_ANNEAL_RATE = 0.80
 
     print('\n')
-    warn("EVALUATION:")
+    print("EVALUATION:")
     policy.init(session=session, load_dir=policy.write_dir)
     lossTr, accTr = run_minibatches(xTr, yTr, train=False, bsize=512, shuffle=False, desc='train')
     lossCv, accCv = run_minibatches(xCv, yCv, train=False, bsize=512, shuffle=False, desc='valid')
     lossTe, accTe = run_minibatches(xTe, yTe, train=False, bsize=512, shuffle=False, desc='test')
-    warn("TRAIN stats: Loss: %.5f  |  Acc: %.5f" % (lossTr, accTr))
-    warn("VALID stats: Loss: %.5f  |  Acc: %.5f" % (lossCv, accCv))
-    warn(" TEST stats: Loss: %.5f  |  Acc: %.5f" % (lossTe, accTe))
-
-
+    print("TRAIN stats: Loss: %.5f  |  Acc: %.5f" % (lossTr, accTr))
+    print("VALID stats: Loss: %.5f  |  Acc: %.5f" % (lossCv, accCv))
+    print(" TEST stats: Loss: %.5f  |  Acc: %.5f" % (lossTe, accTe))
 
 
 if __name__ == '__main__':
@@ -115,7 +114,7 @@ if __name__ == '__main__':
     xTr, yTr = states[:nTr], actions[:nTr]
     xCv, yCv = states[nTr:nTr + nCv], actions[nTr:nTr + nCv]
     xTe, yTe = states[nTr + nCv:], actions[nTr + nCv:]
-    info("Train_set: {0}, {1}".format(xTr.shape, yTr.shape))
-    info("Valid_set: {0}, {1}".format(xCv.shape, yCv.shape))
-    info("Test_set: {0}, {1}".format(xTe.shape, yTe.shape))
+    print("Train_set: {0}, {1}".format(xTr.shape, yTr.shape))
+    print("Valid_set: {0}, {1}".format(xCv.shape, yCv.shape))
+    print("Test_set: {0}, {1}".format(xTe.shape, yTe.shape))
     train()

@@ -1,3 +1,16 @@
+params/
+__pycache__/
+.idea/
+.pytest_cache/
+build/
+cmake-build-debug/
+CMakeLists.txt
+.cache
+.Rhistory
+.rhistory
+*.egg*/
+refs/
+
 # Prerequisites
 *.d
 
@@ -29,15 +42,7 @@
 # Executables
 *.exe
 *.out
-*.app
 
-# Python
-.idea/
-python/.idea/
-__pycache__/
-python/__pycache__/
-*.Rhistory
-python/.Rhistory
-*.DS_Store
-params/
-
+.DS_Store
+.cproject
+.project

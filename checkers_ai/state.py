@@ -1,4 +1,5 @@
-from config import *
+import copy
+from checkers_ai.config import *
 
 
 class State:
@@ -22,7 +23,7 @@ class State:
          dir2   dir1
     """
     shell_pieces = {
-        EMPTY: '-   ',
+        EMPTY:   '-   ',
         P2_CHKR: 'x   ',
         P2_KING: 'X   ',
         P1_CHKR: 'o   ',
@@ -38,9 +39,8 @@ class State:
     def __init__(self):
         self.init()
 
-
     def init(self):
-        self.state = BOARD_INIT.copy()
+        self.state = copy.deepcopy(BOARD_INIT)
         self.valid_jumps = {1: [], -1: []}
 
     def print(self, verbose=True):
@@ -59,7 +59,7 @@ class State:
         board_str += BOARD_VIEW[-1]
         print(board_str)
 
-    def get_state_view(self, view=1):
+    async def get_state_view(self, view=1):
         """
         :param view: 1 or -1
         :return: board state from perspective 'view'
@@ -70,36 +70,36 @@ class State:
             return self.state.copy()
 
     @staticmethod
-    def transform_position(pos):
+    async def transform_position(pos):
         return 31 - pos
 
-    def transform_action(self, action):
+    async def transform_action(self, action):
         a = np.zeros((128,))
         a[action] = 1
         ind = np.argwhere(a.reshape(32, 4) == 1)[0]
         action = np.zeros((32, 4))
-        action[self.transform_position(ind[0]),
+        action[await self.transform_position(ind[0]),
                self.dir_transform[ind[1]]] = 1
         return np.argwhere(action.reshape(-1) == 1)[0]
 
-    def transform_direction(self, direction):
+    async def transform_direction(self, direction):
         return self.dir_transform[direction]
 
-    def get_pieces_and_directions(self, player):
+    async def get_pieces_and_directions(self, player):
         chkr_dir = P1_CHKR_DIR if player == 1 else P2_CHKR_DIR
         chkr_piece = P1_CHKR if player == 1 else P2_CHKR
         king_piece = P1_KING if player == 1 else P2_KING
         kings_row = P1_KINGS_ROW if player == 1 else P2_KINGS_ROW
         return chkr_piece, king_piece, chkr_dir, KING_DIR, kings_row
 
-    def __get_jumps(self):
+    async def __get_jumps(self):
         """
         :returns updated available_jumps member
         """
         for player in (1, -1):
-            state = self.get_state_view()
+            state = await self.get_state_view()
             valid_jumps = []
-            chkr, king, chkr_dir, king_dir, _ = self.get_pieces_and_directions(player)
+            chkr, king, chkr_dir, king_dir, _ = await self.get_pieces_and_directions(player)
             for position in VALID_POS:
                 piece = state[position]
                 if not piece in (chkr, king):
@@ -115,7 +115,7 @@ class State:
             self.valid_jumps[player] = valid_jumps
 
     @staticmethod
-    def positions2action(pos_init, pos_final):
+    async def positions2action(pos_init, pos_final):
         """
         :param pos_init: initial position (w.r.t VIEW_0)
         :param pos_final: final position (w.r.t VIEW_0)
@@ -131,7 +131,7 @@ class State:
         action[pos_init, direction] = 1
         return action
 
-    def action2positions(self, action, player):
+    async def action2positions(self, action, player):
         """
         :param action: (32x4 -> posxdir) (w.r.t. VIEW_0)
         :param player: player (1 or -1)
@@ -145,11 +145,11 @@ class State:
         else:
             return pos, neighbor, 'standard'
 
-    def __set_state(self, state):
+    async def __set_state(self, state):
         self.state = state
-        self.__get_jumps()
+        await self.__get_jumps()
 
-    def update(self, pos_init, pos_final, player, move_type, set_state=True, verbose=False):
+    async def update(self, pos_init, pos_final, player, move_type, set_state=True, verbose=False):
         """
         :param pos_init: initial position (w.r.t. VIEW_0)
         :param pos_final: final_position (w.r.t. VIEW_0)
@@ -160,8 +160,8 @@ class State:
         :return:
         """
         validations = []
-        state = self.get_state_view()
-        chkr, king, chkr_dir, king_dir, kings_row = self.get_pieces_and_directions(player)
+        state = await self.get_state_view()
+        chkr, king, chkr_dir, king_dir, kings_row = await self.get_pieces_and_directions(player)
         piece = self.state[pos_init]
         valid_dir = chkr_dir if piece == chkr else king_dir
         validations.append(piece in (chkr, king) and state[pos_final] == EMPTY)
@@ -180,12 +180,6 @@ class State:
                 if verbose:
                     print('Position eliminated: %d' % eliminated)
             if set_state:
-                self.__set_state(state)
+                await self.__set_state(state)
         else:
             raise NotImplementedError
-
-
-if __name__ == '__main__':
-
-    state = State()
-    state.print()

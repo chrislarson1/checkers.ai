@@ -1,8 +1,10 @@
-import json
-from collections import OrderedDict, namedtuple
-from config import *
-from utils import *
+import tensorflow as tf
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
+from checkers_ai.config import *
+
+
+PARAM_INIT = tf.contrib.layers.xavier_initializer()
+INCEP_ACT = tf.nn.tanh
 
 
 class Model:
@@ -41,14 +43,10 @@ class Model:
             if load_dir and vars_to_load:
                 saver = tf.train.Saver(vars_to_load)
                 saver.restore(session, os.path.join(load_dir, self.name))
-                # import pprint
-                # pp = pprint.PrettyPrinter(indent=3)
-                # info('Successfully loaded from {}:'.format(load_dir))
-                # pp.pprint(vars_to_load)
 
     def save_params(self, session, step=None):
         assert self.write_dir
-        info('Saving {0} to {1}'.format(self.name, self.write_dir))
+        print('Saving {0} to {1}'.format(self.name, self.write_dir))
         saver = tf.train.Saver(list(set(self._vars)))
         saver.save(session, os.path.join(self.write_dir, self.name), global_step=step)
 
@@ -62,12 +60,11 @@ class Policy(Model):
 
     def __init__(self,
                  session:tf.Session,
-                 name=None,
                  load_dir=None,
                  trainable=False,
                  selection='greedy',
                  device='GPU'):
-        super().__init__(name="POLICY_{}".format(name),
+        super().__init__(name="Policy",
                          load_dir=load_dir,
                          trainable=trainable,
                          device=device)
@@ -80,6 +77,12 @@ class Policy(Model):
                                            name="action")
         self.selection = selection
         self._constructor()
+        self.init(self.session)
+
+    @property
+    def vars(self):
+        return [v for v in tf.trainable_variables() if
+                v.name.lower().__contains__(self.name.lower())]
 
     def _build_graph(self):
 
@@ -211,23 +214,16 @@ class Policy(Model):
                     grads_and_vars=[self.pg_loss, self.vars],
                     global_step=self.step)
 
-    @property
-    def vars(self):
-        return [v for v in tf.trainable_variables() if
-                v.name.lower().__contains__(self.name.lower())]
-
-
 
 class Value(Model):
 
     def __init__(self,
                  session:tf.Session,
-                 name=None,
                  load_dir=None,
                  trainable=False,
                  selection='greedy',
                  device='GPU'):
-        super().__init__(name="VALUE_{}".format(name), load_dir=load_dir, trainable=trainable, device=device)
+        super().__init__(name="VALUE", load_dir=load_dir, trainable=trainable, device=device)
         self.session = session
         self.state = tf.placeholder(dtype=tf.int32,
                                     shape=(None, 8, 4),
@@ -237,6 +233,12 @@ class Value(Model):
                                            name="action")
         self.selection = selection
         self._constructor()
+        self.init(self.session)
+
+    @property
+    def vars(self):
+        return [v for v in tf.trainable_variables() if
+                v.name.lower().__contains__(self.name.lower())]
 
     def _build_graph(self):
 
@@ -363,12 +365,11 @@ class Value(Model):
                                            name="score_func_grad_estimator")
 
 
-
 class A2CLoss:
 
-    def __init__(self, policy_network, value_network):
-        self.policy = policy_network
-        self.value = value_network
+    def __init__(self, policy, value):
+        self.policy = policy
+        self.value = value
         self.__build_graph()
 
     def __build_graph(self):
@@ -378,24 +379,17 @@ class A2CLoss:
             self.lrate = tf.placeholder(shape=(), dtype=tf.float32, name="lrate")
             self.rewards = tf.placeholder(shape=(None), dtype=tf.float32, name="rewards")
             self.baseline = tf.placeholder(shape=(None), dtype=tf.float32, name="value_estimate")
-            self.gradlogp = self.adv * tf.log(self.policy.softmax)
-            self.logprob = tf.reduce_mean(input_tensor=-self.gradlogprob_adv,
+            self.gradlogp = self.policy.adv * tf.log(self.policy.softmax)
+            self.logprob = tf.reduce_mean(input_tensor=-self.policy.gradlogprob_adv,
                                           axis=1,
                                           name="pg_loss")
             self.policy_entropy = -tf.reduce_sum(
                 self.policy.softmax * tf.log(self.policy.softmax), axis=1
             )
 
-            self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.lr,
+            self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.policy.lr,
                                                        decay=0.99,
                                                        epsilon=1e-5)
             self.policy_update = self.optimizer.apply_gradients(
-                grads_and_vars=[self.pg_loss, self.policy.vars],
+                grads_and_vars=[self.policy.pg_loss, self.policy.vars],
                 global_step=self.policy.step)
-
-
-
-
-
-if __name__ == '__main__':
-    pass
